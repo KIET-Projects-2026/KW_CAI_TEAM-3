@@ -1,67 +1,67 @@
 import os
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-# Initialize FastAPI
-app = FastAPI(title="T5 Text Summarizer API")
+app = FastAPI(title="Text Summarizer API")
 
-# Enable CORS for React dev servers on 3000 and 3001
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
-        "http://127.0.0.1:3001"
+        "http://127.0.0.1:3001",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Fix model path relative to this file
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "..", "model", "t5_finetuned")
-MODEL_PATH = os.path.abspath(MODEL_PATH)
+# PATH FIX (models, not model)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "t5_finetuned")
 
-# Load tokenizer and model
+# SAFETY CHECK
+if not os.path.exists(MODEL_PATH):
+    raise RuntimeError(f"Model folder not found at: {MODEL_PATH}")
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_PATH).to(device)
 
-# Pydantic model for input
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True)
+model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_PATH, local_files_only=True).to(device)
+
 class InputText(BaseModel):
     text: str
 
-# Summarization function
-def summarize(text: str, max_output_length: int = 150) -> str:
-    input_text = "Summarize: " + text
+def summarize(text: str) -> str:
     inputs = tokenizer(
-        input_text,
+        "summarize the following text in detail: " + text,
         return_tensors="pt",
         truncation=True,
-        padding=True
+        padding=True,
+        max_length=512
     ).to(device)
+
     outputs = model.generate(
-        **inputs,
-        max_length=max_output_length,
-        num_beams=4,
-        early_stopping=True,
-        no_repeat_ngram_size=2
-    )
+    **inputs,
+    max_length=120,
+    min_length=60,
+    do_sample=True,
+    temperature=0.8,
+    top_p=0.9,
+    repetition_penalty=1.2
+)
+
+
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-# API endpoints
 @app.post("/summarize")
 def summarize_api(data: InputText):
-    try:
-        summary_text = summarize(data.text)
-        return {"summary": summary_text}
-    except Exception as e:
-        return {"error": str(e)}
+    return {"summary": summarize(data.text)}
 
 @app.get("/")
 def root():
