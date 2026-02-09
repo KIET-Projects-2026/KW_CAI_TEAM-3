@@ -38,8 +38,10 @@ class InputText(BaseModel):
     text: str
 
 def summarize(text: str) -> str:
+    prefix = "summarize the following text in a professional and concise manner: "
+    
     inputs = tokenizer(
-        "summarize the following text in detail: " + text,
+        prefix + text,
         return_tensors="pt",
         truncation=True,
         padding=True,
@@ -47,15 +49,13 @@ def summarize(text: str) -> str:
     ).to(device)
 
     outputs = model.generate(
-    **inputs,
-    max_length=120,
-    min_length=60,
-    do_sample=True,
-    temperature=0.8,
-    top_p=0.9,
-    repetition_penalty=1.2
-)
-
+        **inputs,
+        max_length=150,
+        min_length=40,
+        do_sample=False,
+        no_repeat_ngram_size=3,
+        repetition_penalty=2.5
+    )
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
