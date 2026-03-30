@@ -1,8 +1,22 @@
+# Python
 venv/
+backend/venv/
+__pycache__/
+*.pyc
+
+# ML Models
+models/
 model/
 *.safetensors
 *.bin
-__pycache__/
-.history/
+
+# Environment
 .env
+
+# Node / React
 node_modules/
+frontend/node_modules/
+
+# Misc
+.history/
+.DS_Store
