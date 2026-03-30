@@ -1,0 +1,8 @@
+venv/
+model/
+*.safetensors
+*.bin
+__pycache__/
+.history/
+.env
+node_modules/
