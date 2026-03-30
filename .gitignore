@@ -1,22 +1,7 @@
-# Python
 __pycache__/
 *.pyc
+.history/
 venv/
 .env
-
-# Node / React
 node_modules/
-dist/
-build/
-
-# VSCode / History
-.history/
 .vscode/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-models/
